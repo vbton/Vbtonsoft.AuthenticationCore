@@ -53,16 +53,16 @@
 >> 	}
 >> 	public override async Task HandleAsync(AuthorizationHandlerContext context)
 >> 	{
->> 	   await base.HandleAsync(context);
->>     /* 3.4 政策需求检测结果 */
+>> 		await base.HandleAsync(context);
+>> 		/* 3.4 政策需求检测结果 */
 >> 	}
 >> 	protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, YepAuthorizationRequirement requirement)
 >> 	{
->> 	  if (context.User.Identity.IsAuthenticated/* 3.5 检测是否满足政策需求 */)
->> 	  {
->> 	    context.Succeed(requirement); /* 3.6 设置当前政策需求为认证通过 */
->> 	  }
->> 	  return Task.CompletedTask;
+>> 		if (context.User.Identity.IsAuthenticated/* 3.5 检测是否满足政策需求 */)
+>> 		{
+>> 			context.Succeed(requirement); /* 3.6 设置当前政策需求为认证通过 */
+>> 		}
+>> 		return Task.CompletedTask;
 >> 	}
 >> }
 >> ``` 
@@ -73,7 +73,54 @@
 > * 3.3 政策需求接口，必须（框架要求）。
 > * 3.4 政策需求检测结果（核心：`context.HasSucceeded`，为 true 时，表示***整个需求验证通过***）。
 > * 3.5 检测是否满足政策需求，对当前接口调用方进行详细的验证（如：控制器名称、方法名称等）。
-> * 3.6 设置当前政策需求为认证通过。调用后表示当前用户满足请求要求，否则***整个需求验证失败***
+> * 3.6 设置当前政策需求为认证通过。调用后表示当前用户满足请求要求，否则***整个需求验证失败***。
 
 
-> 参考代码：[Vbtonsoft.AuthenticationCore](https://github.com/vbton/Vbtonsoft.AuthenticationCore)
+> 参考代码： 参考代码：[Vbtonsoft.AuthenticationCore](https://github.com/vbton/Vbtonsoft.AuthenticationCore)
+
+> ##### 用法
+>
+>> ``` C# 
+>> public class Startup
+>> {
+>> 	public void ConfigureServices(IServiceCollection services)
+>> 	{
+>> 		services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+>> 
+>> 		services.AddAuthenticationCore("Token", /*context => //? 对每个控制器的每个方法进行过滤，认证失败时执行 context.Fail() 即可;
+>> 		{
+>> 
+>> 		},*/ options =>
+>> 		{
+>> 			options.Events = new YepAuthenticationEvents
+>> 			{
+>> 				OnMessageReceived = context => //? 接收消息是处理
+>> 				{
+>> 
+>> 				},
+>> 				OnTokenValidate = context =>  //? 信息认证
+>> 				{
+>> 					return SecurityTokenValidate.Success("10000");
+>> 				},
+>> 				OnTokenValidated = context => //? Identity 可用
+>> 				{
+>> 					//? 处理业务逻辑
+>> 					return Task.CompletedTask;
+>> 				}
+>> 			};
+>> 		});
+>> 	}
+>> 
+>> 	// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+>> 	public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+>> 	{
+>> 		if (env.IsDevelopment())
+>> 		{
+>> 			app.UseDeveloperExceptionPage();
+>> 		}
+>> 		//跨域
+>> 		app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader().AllowCredentials());
+>> 		app.UseMvc();
+>> 	}
+>> }
+>> ``` 
